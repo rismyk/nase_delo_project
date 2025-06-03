@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Приглашение истекло - Наше дело{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="card-body p-5 text-center">
+            <div class="mb-4">
+                <i class="fas fa-clock text-warning" style="font-size: 4rem;"></i>
+            </div>
+            
+            <h2 class="h3 mb-3">Приглашение истекло</h2>
+            
+            <p class="text-muted mb-4">
+                К сожалению, срок действия этого приглашения истек.<br>
+                Приглашения действительны в течение 7 дней с момента отправки.
+            </p>
+            
+            <div class="alert alert-info" role="alert">
+                <strong>Что делать дальше?</strong><br>
+                Обратитесь к пользователю, который вас пригласил, чтобы получить новое приглашение.
+            </div>
+            
+            <a href="{% url 'login' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Вернуться к входу
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

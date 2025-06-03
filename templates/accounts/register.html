@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация - Наше дело{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container">
+    <div class="auth-card" style="max-width: 500px;">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <h2 class="h3 mb-3 font-weight-normal">
+                    <i class="fas fa-user-plus text-primary me-2"></i>
+                    Регистрация
+                </h2>
+                <p class="text-muted">
+                    Приглашение от: <strong>{{ invitation.inviter.full_name }}</strong><br>
+                    <small>{{ invitation.invitee_email }}</small>
+                </p>
+            </div>
+            
+            <!-- Форма регистрации -->
+            <form id="registerForm">
+                <input type="hidden" name="invitation_token" value="{{ token }}">
+                <input type="hidden" name="email" value="{{ invitation.invitee_email }}">
+                
+                <div class="mb-3">
+                    <label for="full_name" class="form-label">Полное имя *</label>
+                    <input type="text" class="form-control" id="full_name" name="full_name" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Телефон</label>
+                    <input type="tel" class="form-control" id="phone" name="phone">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="organization" class="form-label">Организация</label>
+                    <input type="text" class="form-control" id="organization" name="organization" placeholder="Название организации, ИП, адвокат">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="lawyer_certificate" class="form-label">Номер удостоверения</label>
+                    <input type="text" class="form-control" id="lawyer_certificate" name="lawyer_certificate" placeholder="Номер адвокатского удостоверения">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="region" class="form-label">Регион работы</label>
+                    <input type="text" class="form-control" id="region" name="region" placeholder="Москва, Санкт-Петербург, и т.д.">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">Пароль *</label>
+                    <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                    <div class="form-text">Минимум 8 символов</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password_confirm" class="form-label">Подтверждение пароля *</label>
+                    <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                </div>
+                
+                <!-- Сообщения об ошибках -->
+                <div id="errorMessages" class="alert alert-danger d-none" role="alert"></div>
+                
+                <button type="submit" class="btn btn-primary w-100 mb-3" id="registerBtn">
+                    <span id="registerSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    Создать аккаунт
+                </button>
+            </form>
+            
+            <div class="text-center">
+                <small class="text-muted">
+                    Уже есть аккаунт? <a href="{% url 'login' %}" class="text-decoration-none">Войти</a>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const registerBtn = document.getElementById('registerBtn');
+    const registerSpinner = document.getElementById('registerSpinner');
+    const errorMessages = document.getElementById('errorMessages');
+    
+    // Показываем загрузку
+    registerBtn.disabled = true;
+    registerSpinner.classList.remove('d-none');
+    errorMessages.classList.add('d-none');
+    
+    try {
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Проверяем пароли
+        if (data.password !== data.password_confirm) {
+            throw new Error('Пароли не совпадают');
+        }
+        
+        const response = await axios.post('/api/register/', data);
+        
+        if (response.data.success) {
+            // Сохраняем токен
+            localStorage.setItem('auth_token', response.data.token);
+            
+            // Показываем сообщение об успехе
+            alert('Регистрация прошла успешно! Добро пожаловать в систему "Наше дело".');
+            
+            // Редиректим на дашборд
+            window.location.href = '/dashboard/';
+        }
+    } catch (error) {
+        let errorText = 'Произошла ошибка при регистрации';
+        
+        if (error.message) {
+            errorText = error.message;
+        } else if (error.response?.data?.errors) {
+            const errors = error.response.data.errors;
+            errorText = Object.values(errors).flat().join(', ');
+        } else if (error.response?.data?.error) {
+            errorText = error.response.data.error;
+        }
+        
+        errorMessages.textContent = errorText;
+        errorMessages.classList.remove('d-none');
+        
+        // Скрываем загрузку
+        registerBtn.disabled = false;
+        registerSpinner.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

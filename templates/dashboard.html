@@ -1,0 +1,1089 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная панель - Наше дело{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Панель управления</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openCreateCaseModal()">
+                <i class="fas fa-plus me-1"></i>Новое дело
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openCreateEventModal()">
+                <i class="fas fa-calendar-plus me-1"></i>Новое заседание
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Приветствие -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">Добро пожаловать, {{ user.full_name|default:user.email }}!</h4>
+            <p class="mb-0">
+                {% if user.is_system_owner %}
+                    Вы являетесь владельцем системы. У вас есть полный доступ ко всем функциям.
+                {% else %}
+                    Добро пожаловать в систему "Наше дело". Здесь вы можете управлять своими делами и календарем.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Статистические карточки -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Мои дела
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="myCaresCount">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-folder-open fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Ближайшие заседания
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="upcomingHearingsCount">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Дела с доступом
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="sharedCasesCount">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Критические сроки
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="criticalDeadlinesCount">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Основное содержимое -->
+<div class="row">
+    <!-- Ближайшие заседания -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Ближайшие заседания</h6>
+                <a href="#" class="btn btn-sm btn-primary">Просмотреть все</a>
+            </div>
+            <div class="card-body">
+                <div id="upcomingHearings">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Недавняя активность -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Недавняя активность</h6>
+            </div>
+            <div class="card-body">
+                <div id="recentActivity">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок для владельца системы -->
+{% if user.is_system_owner %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Администрирование системы</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                                <h5>Пригласить пользователя</h5>
+                                <button class="btn btn-primary" onclick="showInviteModal()">
+                                    Отправить приглашение
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users-cog fa-3x text-info mb-3"></i>
+                                <h5>Пользователи системы</h5>
+                                <p class="text-muted">Всего: <span id="totalUsersCount">...</span></p>
+                                <button class="btn btn-info">Управление</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-envelope fa-3x text-success mb-3"></i>
+                                <h5>Приглашения</h5>
+                                <p class="text-muted">Ожидают: <span id="pendingInvitationsCount">...</span></p>
+                                <button class="btn btn-success">Просмотреть</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Загрузка данных дашборда при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+    
+    // Обработчик кнопки сохранения дела
+    document.getElementById('saveCaseBtn').addEventListener('click', async function() {
+        await saveCaseForm();
+    });
+    
+    // Обработчик кнопки сохранения события
+    document.getElementById('saveEventBtn').addEventListener('click', async function() {
+        await saveEventForm();
+    });
+});
+
+async function loadDashboardData() {
+    try {
+        // Загружаем статистику по делам
+        const statsResponse = await axios.get('/api/cases/stats/');
+        const stats = statsResponse.data;
+        
+        // Загружаем статистику календаря
+        const calendarStatsResponse = await axios.get('/api/calendar/stats/');
+        const calendarStats = calendarStatsResponse.data;
+        
+        // Обновляем счетчики
+        document.getElementById('myCaresCount').textContent = stats.owned_cases_count || 0;
+        document.getElementById('sharedCasesCount').textContent = stats.accessible_cases_count || 0;
+        document.getElementById('upcomingHearingsCount').textContent = calendarStats.upcoming_events || 0;
+        document.getElementById('criticalDeadlinesCount').textContent = calendarStats.today_events || 0;
+        
+        // Загружаем ближайшие заседания
+        await loadUpcomingHearings();
+        
+        // Загружаем недавнюю активность
+        await loadRecentActivity();
+        
+        {% if user.is_system_owner %}
+        // Данные для владельца системы
+        const usersResponse = await axios.get('/api/users/');
+        document.getElementById('totalUsersCount').textContent = usersResponse.data.length || 1;
+        document.getElementById('pendingInvitationsCount').textContent = '0'; // TODO: API для приглашений
+        {% endif %}
+        
+    } catch (error) {
+        console.error('Ошибка загрузки данных дашборда:', error);
+        
+        // Показываем заглушки при ошибке
+        document.getElementById('myCaresCount').textContent = '0';
+        document.getElementById('upcomingHearingsCount').textContent = '0';
+        document.getElementById('sharedCasesCount').textContent = '0';
+        document.getElementById('criticalDeadlinesCount').textContent = '0';
+    }
+}
+
+async function loadUpcomingHearings() {
+    try {
+        // Загружаем ближайшие события календаря
+        const eventsResponse = await axios.get('/api/calendar/events/?upcoming=true');
+        
+        console.log('Ответ API событий:', eventsResponse.data);
+        
+        // API может возвращать данные в разных форматах
+        let events = [];
+        if (eventsResponse.data.results) {
+            events = eventsResponse.data.results; // Пагинированный ответ
+        } else if (Array.isArray(eventsResponse.data)) {
+            events = eventsResponse.data; // Простой массив
+        } else {
+            events = [];
+        }
+        
+        const hearingsContainer = document.getElementById('upcomingHearings');
+        
+        if (events.length === 0) {
+            // Проверяем, есть ли дела у пользователя
+            const casesResponse = await axios.get('/api/cases/');
+            let cases = [];
+            if (casesResponse.data.results) {
+                cases = casesResponse.data.results;
+            } else if (Array.isArray(casesResponse.data)) {
+                cases = casesResponse.data;
+            }
+            
+            if (cases.length === 0) {
+                hearingsContainer.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar fa-3x mb-3"></i>
+                        <p>У вас пока нет дел</p>
+                        <button class="btn btn-primary btn-sm" onclick="openCreateCaseModal()">
+                            <i class="fas fa-plus me-1"></i>Создать первое дело
+                        </button>
+                    </div>
+                `;
+            } else {
+                hearingsContainer.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar fa-3x mb-3"></i>
+                        <p>Ближайших заседаний нет</p>
+                        <button class="btn btn-primary btn-sm" onclick="openCreateEventModal()">
+                            <i class="fas fa-calendar-plus me-1"></i>Добавить заседание
+                        </button>
+                    </div>
+                `;
+            }
+        } else {
+            let hearingsHtml = '<div class="list-group list-group-flush">';
+            
+            events.slice(0, 5).forEach(event => {
+                try {
+                    const statusBadge = getEventStatusBadge(event.status);
+                    const typeBadge = getEventTypeBadge(event.event_type);
+                    const eventDate = new Date(event.start_datetime);
+                    const dateStr = eventDate.toLocaleDateString('ru-RU');
+                    const timeStr = eventDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                    
+                    hearingsHtml += `
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <a href="#" onclick="openEvent(${event.id})" class="text-decoration-none">
+                                        ${event.title || 'Без названия'}
+                                    </a>
+                                    ${typeBadge}
+                                </h6>
+                                <small>${statusBadge}</small>
+                            </div>
+                            <p class="mb-1">
+                                <strong>${event.case_number || 'Дело'}</strong>
+                                ${event.case_title ? ` - ${event.case_title}` : ''}
+                                ${event.courtroom ? `<br><small class="text-muted">Зал: ${event.courtroom}</small>` : ''}
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>${dateStr} в ${timeStr}
+                                ${event.court_name ? ` • ${event.court_name}` : ''}
+                            </small>
+                        </div>
+                    `;
+                } catch (eventError) {
+                    console.error('Ошибка обработки события:', event, eventError);
+                }
+            });
+            
+            hearingsHtml += '</div>';
+            
+            if (events.length >= 5) {
+                hearingsHtml += `
+                    <div class="text-center mt-3">
+                        <a href="#" onclick="openCalendarView()" class="btn btn-outline-primary btn-sm">
+                            Показать все события
+                        </a>
+                    </div>
+                `;
+            }
+            
+            hearingsContainer.innerHTML = hearingsHtml;
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки событий:', error);
+        console.error('Детали ошибки:', error.response?.data);
+        
+        const hearingsContainer = document.getElementById('upcomingHearings');
+        hearingsContainer.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>Ошибка загрузки событий</p>
+                <small class="text-danger">Код ошибки: ${error.response?.status || 'неизвестен'}</small><br>
+                <button class="btn btn-primary btn-sm mt-2" onclick="openCreateEventModal()">
+                    <i class="fas fa-calendar-plus me-1"></i>Добавить заседание
+                </button>
+            </div>
+        `;
+    }
+}
+
+async function loadRecentActivity() {
+    try {
+        // Пока показываем заглушку
+        document.getElementById('recentActivity').innerHTML = `
+            <div class="list-group list-group-flush">
+                <div class="list-group-item">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-plus text-success me-3"></i>
+                        <div>
+                            <h6 class="mb-0">Добро пожаловать!</h6>
+                            <small class="text-muted">Вы успешно вошли в систему</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Ошибка загрузки активности:', error);
+    }
+}
+
+function getCaseStatusBadge(status) {
+    const statusMap = {
+        'accepted': '<span class="badge bg-info">Принято</span>',
+        'scheduled': '<span class="badge bg-warning">Назначено</span>',
+        'hearing': '<span class="badge bg-primary">Рассматривается</span>',
+        'decided': '<span class="badge bg-success">Решение</span>',
+        'appeal_filed': '<span class="badge bg-warning">Апелляция</span>',
+        'final': '<span class="badge bg-success">Вступило в силу</span>',
+        'execution': '<span class="badge bg-dark">Исполнение</span>',
+        'closed': '<span class="badge bg-secondary">Закрыто</span>'
+    };
+    return statusMap[status] || '<span class="badge bg-light text-dark">Неизвестно</span>';
+}
+
+function getAccessLevelBadge(accessLevel) {
+    if (accessLevel === 'owner') {
+        return '<span class="badge bg-primary ms-2">Владелец</span>';
+    } else if (accessLevel === 'full') {
+        return '<span class="badge bg-success ms-2">Полный доступ</span>';
+    } else if (accessLevel === 'calendar') {
+        return '<span class="badge bg-info ms-2">Календарь</span>';
+    } else if (accessLevel === 'view') {
+        return '<span class="badge bg-secondary ms-2">Просмотр</span>';
+    }
+    return '';
+}
+
+// Функции для навигации и создания дел
+function createNewCase() {
+    openCreateCaseModal();
+}
+
+function openCreateCaseModal() {
+    // Загружаем список судов
+    loadCourts();
+    
+    // Устанавливаем сегодняшнюю дату по умолчанию
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('receivedDate').value = today;
+    
+    // Открываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('createCaseModal'));
+    modal.show();
+}
+
+async function loadCourts() {
+    try {
+        const response = await axios.get('/api/cases/courts/');
+        const courts = response.data.results || response.data || [];
+        
+        const courtSelect = document.getElementById('court');
+        courtSelect.innerHTML = '<option value="">Выберите суд</option>';
+        
+        courts.forEach(court => {
+            const option = document.createElement('option');
+            option.value = court.id;
+            option.textContent = court.name;
+            courtSelect.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки судов:', error);
+        alert('Ошибка загрузки списка судов');
+    }
+}
+
+function openCase(caseId) {
+    alert(`Открытие дела с ID: ${caseId}. Функция будет добавлена позже.`);
+}
+
+function openCasesList() {
+    alert('Переход к списку дел. Функция будет добавлена позже.');
+}
+
+// Функции для работы с событиями календаря
+function openCreateEventModal() {
+    // Загружаем список дел пользователя
+    loadUserCases();
+    
+    // Устанавливаем сегодняшнюю дату и время по умолчанию
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const timeStr = today.toTimeString().split(' ')[0].substring(0, 5);
+    
+    document.getElementById('eventStartDate').value = todayStr;
+    document.getElementById('eventStartTime').value = timeStr;
+    
+    // Открываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('createEventModal'));
+    modal.show();
+}
+
+async function loadUserCases() {
+    try {
+        const response = await axios.get('/api/cases/');
+        const cases = response.data.results || response.data || [];
+        
+        const caseSelect = document.getElementById('eventCase');
+        caseSelect.innerHTML = '<option value="">Выберите дело</option>';
+        
+        cases.forEach(caseItem => {
+            const option = document.createElement('option');
+            option.value = caseItem.id;
+            option.textContent = `${caseItem.court_case_number} - ${caseItem.subject_matter.substring(0, 50)}`;
+            caseSelect.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки дел:', error);
+        alert('Ошибка загрузки списка дел');
+    }
+}
+
+// Обработчик изменения дела - загружаем обособленные споры
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'eventCase') {
+        loadSeparateDisputes(e.target.value);
+    }
+    
+    if (e.target.id === 'eventType') {
+        const separateDisputeContainer = document.getElementById('separateDisputeContainer');
+        if (e.target.value === 'separate_hearing') {
+            separateDisputeContainer.style.display = 'block';
+        } else {
+            separateDisputeContainer.style.display = 'none';
+        }
+    }
+});
+
+async function loadSeparateDisputes(caseId) {
+    if (!caseId) {
+        document.getElementById('eventSeparateDispute').innerHTML = '<option value="">Выберите обособленный спор</option>';
+        return;
+    }
+    
+    try {
+        const response = await axios.get(`/api/cases/${caseId}/disputes/`);
+        const disputes = response.data || [];
+        
+        const disputeSelect = document.getElementById('eventSeparateDispute');
+        disputeSelect.innerHTML = '<option value="">Выберите обособленный спор</option>';
+        
+        disputes.forEach(dispute => {
+            const option = document.createElement('option');
+            option.value = dispute.id;
+            option.textContent = dispute.dispute_name;
+            disputeSelect.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки обособленных споров:', error);
+    }
+}
+
+// Обработка формы создания события
+async function saveEventForm() {
+    const saveBtn = document.getElementById('saveEventBtn');
+    const saveSpinner = document.getElementById('saveEventSpinner');
+    const errorsDiv = document.getElementById('createEventErrors');
+    
+    // Показываем загрузку
+    saveBtn.disabled = true;
+    saveSpinner.classList.remove('d-none');
+    errorsDiv.classList.add('d-none');
+    
+    try {
+        const formData = new FormData(document.getElementById('createEventForm'));
+        const data = Object.fromEntries(formData.entries());
+        
+        // Формируем дату и время начала
+        const startDateTime = `${data.start_date}T${data.start_time}:00`;
+        data.start_datetime = startDateTime;
+        
+        // Формируем дату и время окончания (если указаны)
+        if (data.end_date && data.end_time) {
+            const endDateTime = `${data.end_date}T${data.end_time}:00`;
+            data.end_datetime = endDateTime;
+        } else if (data.end_date) {
+            const endDateTime = `${data.end_date}T${data.start_time}:00`;
+            data.end_datetime = endDateTime;
+        }
+        
+        // Конвертируем ID в числа
+        data.case = parseInt(data.case);
+        if (data.separate_dispute) {
+            data.separate_dispute = parseInt(data.separate_dispute);
+        }
+        
+        // Конвертируем чекбоксы в boolean
+        data.email_notifications = !!data.email_notifications;
+        data.telegram_notifications = !!data.telegram_notifications;
+        
+        // Убираем вспомогательные поля
+        delete data.start_date;
+        delete data.start_time;
+        delete data.end_date;
+        delete data.end_time;
+        
+        // Убираем пустые поля
+        Object.keys(data).forEach(key => {
+            if (data[key] === '' || data[key] === null) {
+                delete data[key];
+            }
+        });
+        
+        console.log('Отправляем данные события:', data);
+        
+        const response = await axios.post('/api/calendar/events/', data);
+        
+        console.log('Событие создано:', response.data);
+        
+        // Закрываем модальное окно
+        const modal = bootstrap.Modal.getInstance(document.getElementById('createEventModal'));
+        modal.hide();
+        
+        // Очищаем форму
+        document.getElementById('createEventForm').reset();
+        
+        // Обновляем данные дашборда
+        await loadDashboardData();
+        
+        // Показываем уведомление
+        alert(`Событие "${response.data.title}" успешно создано!`);
+        
+    } catch (error) {
+        console.error('Ошибка создания события:', error);
+        
+        let errorText = 'Ошибка при создании события';
+        
+        if (error.response?.data) {
+            const errors = error.response.data;
+            if (typeof errors === 'object') {
+                const errorMessages = [];
+                Object.keys(errors).forEach(field => {
+                    const fieldErrors = Array.isArray(errors[field]) ? errors[field] : [errors[field]];
+                    fieldErrors.forEach(err => {
+                        errorMessages.push(`${field}: ${err}`);
+                    });
+                });
+                errorText = errorMessages.join('<br>');
+            } else if (typeof errors === 'string') {
+                errorText = errors;
+            }
+        }
+        
+        errorsDiv.innerHTML = errorText;
+        errorsDiv.classList.remove('d-none');
+    }
+    
+    // Скрываем загрузку
+    saveBtn.disabled = false;
+    saveSpinner.classList.add('d-none');
+}
+
+// Обработка формы создания дела
+async function saveCaseForm() {
+    const saveBtn = document.getElementById('saveCaseBtn');
+    const saveSpinner = document.getElementById('saveCaseSpinner');
+    const errorsDiv = document.getElementById('createCaseErrors');
+    
+    // Показываем загрузку
+    saveBtn.disabled = true;
+    saveSpinner.classList.remove('d-none');
+    errorsDiv.classList.add('d-none');
+    
+    try {
+        const formData = new FormData(document.getElementById('createCaseForm'));
+        const data = Object.fromEntries(formData.entries());
+        
+        // Конвертируем court в число
+        data.court = parseInt(data.court);
+        
+        // Убираем пустые поля
+        Object.keys(data).forEach(key => {
+            if (data[key] === '' && key !== 'third_party' && key !== 'description') {
+                delete data[key];
+            }
+        });
+        
+        console.log('Отправляем данные дела:', data);
+        
+        const response = await axios.post('/api/cases/', data);
+        
+        console.log('Дело создано:', response.data);
+        
+        // Закрываем модальное окно
+        const modal = bootstrap.Modal.getInstance(document.getElementById('createCaseModal'));
+        modal.hide();
+        
+        // Очищаем форму
+        document.getElementById('createCaseForm').reset();
+        
+        // Обновляем данные дашборда
+        await loadDashboardData();
+        
+        // Показываем уведомление
+        alert(`Дело ${response.data.court_case_number} успешно создано!`);
+        
+    } catch (error) {
+        console.error('Ошибка создания дела:', error);
+        
+        let errorText = 'Ошибка при создании дела';
+        
+        if (error.response?.data) {
+            const errors = error.response.data;
+            if (typeof errors === 'object') {
+                // Собираем все ошибки валидации
+                const errorMessages = [];
+                Object.keys(errors).forEach(field => {
+                    const fieldErrors = Array.isArray(errors[field]) ? errors[field] : [errors[field]];
+                    fieldErrors.forEach(err => {
+                        errorMessages.push(`${field}: ${err}`);
+                    });
+                });
+                errorText = errorMessages.join('<br>');
+            } else if (typeof errors === 'string') {
+                errorText = errors;
+            }
+        }
+        
+        errorsDiv.innerHTML = errorText;
+        errorsDiv.classList.remove('d-none');
+    }
+    
+    // Скрываем загрузку
+    saveBtn.disabled = false;
+    saveSpinner.classList.add('d-none');
+}
+
+{% if user.is_system_owner %}
+function showInviteModal() {
+    const email = prompt('Введите email для приглашения:');
+    if (email && email.trim()) {
+        inviteUser(email.trim());
+    }
+}
+
+async function inviteUser(email) {
+    try {
+        console.log('Отправляем приглашение для:', email);
+        
+        const response = await axios.post('/api/invite/', 
+            { email: email },
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        
+        console.log('Ответ сервера:', response.data);
+        
+        if (response.data.success) {
+            alert(`Приглашение отправлено на ${email}!\n\nСсылка для регистрации:\n${response.data.invitation_url}`);
+            loadDashboardData(); // Обновляем данные
+        }
+    } catch (error) {
+        console.error('Ошибка при отправке приглашения:', error);
+        
+        let errorText = 'Ошибка при отправке приглашения';
+        if (error.response?.data?.error) {
+            errorText = error.response.data.error;
+        } else if (error.response?.status === 403) {
+            errorText = 'Недостаточно прав для отправки приглашений';
+        } else if (error.response?.status === 401) {
+            errorText = 'Необходимо войти в систему';
+        }
+        
+        alert(errorText);
+    }
+}
+{% endif %}
+</script>
+
+<!-- Модальное окно создания события календаря -->
+<div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createEventModalLabel">Создать событие календаря</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createEventForm">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="eventCase" class="form-label">Дело *</label>
+                                <select class="form-select" id="eventCase" name="case" required>
+                                    <option value="">Выберите дело</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="eventType" class="form-label">Тип события *</label>
+                                <select class="form-select" id="eventType" name="event_type" required>
+                                    <option value="">Выберите тип</option>
+                                    <option value="hearing">Судебное заседание</option>
+                                    <option value="separate_hearing">Заседание по обособленному спору</option>
+                                    <option value="deadline">Срок подачи документов</option>
+                                    <option value="reminder">Личное напоминание</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="separateDisputeContainer" style="display: none;">
+                        <label for="eventSeparateDispute" class="form-label">Обособленный спор</label>
+                        <select class="form-select" id="eventSeparateDispute" name="separate_dispute">
+                            <option value="">Выберите обособленный спор</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Название события *</label>
+                        <input type="text" class="form-control" id="eventTitle" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventDescription" class="form-label">Описание</label>
+                        <textarea class="form-control" id="eventDescription" name="description" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventStartDate" class="form-label">Дата начала *</label>
+                                <input type="date" class="form-control" id="eventStartDate" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventStartTime" class="form-label">Время начала *</label>
+                                <input type="time" class="form-control" id="eventStartTime" name="start_time" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventEndDate" class="form-label">Дата окончания</label>
+                                <input type="date" class="form-control" id="eventEndDate" name="end_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventEndTime" class="form-label">Время окончания</label>
+                                <input type="time" class="form-control" id="eventEndTime" name="end_time">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventCourtroom" class="form-label">Номер зала/кабинета</label>
+                                <input type="text" class="form-control" id="eventCourtroom" name="courtroom">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventCourtAddress" class="form-label">Адрес суда</label>
+                                <input type="text" class="form-control" id="eventCourtAddress" name="court_address">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventParticipants" class="form-label">Участники процесса</label>
+                        <textarea class="form-control" id="eventParticipants" name="participants" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventAgenda" class="form-label">Вопросы для рассмотрения</label>
+                        <textarea class="form-control" id="eventAgenda" name="agenda" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="eventEmailNotifications" name="email_notifications" checked>
+                                <label class="form-check-label" for="eventEmailNotifications">
+                                    Email уведомления
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="eventTelegramNotifications" name="telegram_notifications">
+                                <label class="form-check-label" for="eventTelegramNotifications">
+                                    Telegram уведомления
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="createEventErrors" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveEventBtn">
+                    <span id="saveEventSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    Создать событие
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания дела -->
+<div class="modal fade" id="createCaseModal" tabindex="-1" aria-labelledby="createCaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCaseModalLabel">Создать новое дело</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createCaseForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="caseNumber" class="form-label">Номер дела в суде *</label>
+                                <input type="text" class="form-control" id="caseNumber" name="court_case_number" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="caseType" class="form-label">Тип дела *</label>
+                                <select class="form-select" id="caseType" name="case_type" required>
+                                    <option value="">Выберите тип дела</option>
+                                    <option value="civil">Гражданское</option>
+                                    <option value="administrative">Административное</option>
+                                    <option value="criminal">Уголовное</option>
+                                    <option value="arbitration">Арбитражное</option>
+                                    <option value="bankruptcy">Банкротство</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="court" class="form-label">Суд *</label>
+                                <select class="form-select" id="court" name="court" required>
+                                    <option value="">Выберите суд</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="courtInstance" class="form-label">Инстанция *</label>
+                                <select class="form-select" id="courtInstance" name="court_instance" required>
+                                    <option value="">Выберите инстанцию</option>
+                                    <option value="first">Первая инстанция</option>
+                                    <option value="appeal">Апелляционная</option>
+                                    <option value="cassation">Кассационная</option>
+                                    <option value="supervisory">Надзорная</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subjectMatter" class="form-label">Предмет спора *</label>
+                        <textarea class="form-control" id="subjectMatter" name="subject_matter" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="claimAmount" class="form-label">Сумма требований (₽)</label>
+                                <input type="number" class="form-control" id="claimAmount" name="claim_amount" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="caseStatus" class="form-label">Статус дела *</label>
+                                <select class="form-select" id="caseStatus" name="case_status" required>
+                                    <option value="">Выберите статус</option>
+                                    <option value="accepted">Принято к производству</option>
+                                    <option value="scheduled">Назначено к рассмотрению</option>
+                                    <option value="hearing">Рассматривается</option>
+                                    <option value="decided">Решение вынесено</option>
+                                    <option value="appeal_filed">Подана апелляция</option>
+                                    <option value="final">Вступило в силу</option>
+                                    <option value="execution">Исполнение</option>
+                                    <option value="closed">Дело закрыто</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="receivedDate" class="form-label">Дата поступления *</label>
+                                <input type="date" class="form-control" id="receivedDate" name="received_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="judgeName" class="form-label">Судья *</label>
+                                <input type="text" class="form-control" id="judgeName" name="judge_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="plaintiff" class="form-label">Истец/Заявитель *</label>
+                        <textarea class="form-control" id="plaintiff" name="plaintiff" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="defendant" class="form-label">Ответчик/Заинтересованное лицо *</label>
+                        <textarea class="form-control" id="defendant" name="defendant" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="thirdParty" class="form-label">Третье лицо</label>
+                        <textarea class="form-control" id="thirdParty" name="third_party" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="clientRole" class="form-label">Роль представляемой стороны *</label>
+                        <select class="form-select" id="clientRole" name="client_role" required>
+                            <option value="">Выберите роль</option>
+                            <option value="plaintiff">Истец</option>
+                            <option value="defendant">Ответчик</option>
+                            <option value="third_party">Третье лицо</option>
+                            <option value="other">Иное</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Краткое описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+                
+                <div id="createCaseErrors" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveCaseBtn">
+                    <span id="saveCaseSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    Создать дело
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.text-xs {
+    font-size: 0.7rem;
+}
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+</style>
+{% endblock %}

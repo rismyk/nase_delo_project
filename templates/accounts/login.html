@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Вход в систему - Наше дело{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <h2 class="h3 mb-3 font-weight-normal">
+                    <i class="fas fa-balance-scale text-primary me-2"></i>
+                    Наше дело
+                </h2>
+                <p class="text-muted">Вход в систему ведения учета дел</p>
+            </div>
+            
+            <!-- Форма входа -->
+            <form id="loginForm">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">Пароль</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
+                    <label class="form-check-label" for="rememberMe">
+                        Запомнить меня
+                    </label>
+                </div>
+                
+                <!-- Сообщения об ошибках -->
+                <div id="errorMessages" class="alert alert-danger d-none" role="alert"></div>
+                
+                <button type="submit" class="btn btn-primary w-100 mb-3" id="loginBtn">
+                    <span id="loginSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    Войти
+                </button>
+            </form>
+            
+            <div class="text-center">
+                <small class="text-muted">
+                    Доступ только по приглашению.<br>
+                    <a href="#" class="text-decoration-none">Забыли пароль?</a>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем, что axios загрузился
+    if (typeof axios === 'undefined') {
+        console.error('Axios не загрузился!');
+        document.getElementById('errorMessages').textContent = 'Ошибка загрузки библиотек. Обновите страницу.';
+        document.getElementById('errorMessages').classList.remove('d-none');
+        return;
+    }
+
+    // Получаем CSRF токен
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    // Настраиваем axios для CSRF
+    if (csrftoken) {
+        axios.defaults.headers.common['X-CSRFToken'] = csrftoken;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const loginSpinner = document.getElementById('loginSpinner');
+        const errorMessages = document.getElementById('errorMessages');
+        
+        // Показываем загрузку
+        loginBtn.disabled = true;
+        loginSpinner.classList.remove('d-none');
+        errorMessages.classList.add('d-none');
+        
+        try {
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            console.log('Отправляем данные:', { email: data.email });
+            
+            const response = await axios.post('/api/login/', data, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Ответ сервера:', response.data);
+            
+            if (response.data.success) {
+                // Успешный вход - редиректим на дашборд
+                window.location.href = '/dashboard/';
+            }
+        } catch (error) {
+            console.error('Ошибка входа:', error);
+            
+            let errorText = 'Произошла ошибка при входе';
+            
+            if (error.response?.data?.errors) {
+                const errors = error.response.data.errors;
+                errorText = Object.values(errors).flat().join(', ');
+            } else if (error.response?.data?.error) {
+                errorText = error.response.data.error;
+            }
+            
+            errorMessages.textContent = errorText;
+            errorMessages.classList.remove('d-none');
+        }
+        
+        // Скрываем загрузку
+        loginBtn.disabled = false;
+        loginSpinner.classList.add('d-none');
+    });
+});
+</script>
+{% endblock %}
