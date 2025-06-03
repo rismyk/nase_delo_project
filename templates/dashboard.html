@@ -205,7 +205,347 @@
 </div>
 {% endif %}
 
+<!-- Модальное окно отложения события -->
+<div class="modal fade" id="postponeEventModal" tabindex="-1" aria-labelledby="postponeEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="postponeEventModalLabel">Отложить заседание</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="postponeEventForm">
+                    <div class="mb-3">
+                        <label class="form-label">Событие:</label>
+                        <div class="alert alert-info" id="postponeEventInfo">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            <span id="postponeEventTitle"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="postponeNewDate" class="form-label">Новая дата *</label>
+                                <input type="date" class="form-control" id="postponeNewDate" name="new_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="postponeNewTime" class="form-label">Новое время *</label>
+                                <input type="time" class="form-control" id="postponeNewTime" name="new_time" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="postponeReason" class="form-label">Причина отложения</label>
+                        <textarea class="form-control" id="postponeReason" name="reason" rows="3" 
+                                  placeholder="Укажите причину переноса заседания (необязательно)"></textarea>
+                    </div>
+                </form>
+                
+                <div id="postponeErrors" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-warning" id="confirmPostponeBtn">
+                    <span id="postponeSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    <i class="fas fa-clock me-1"></i>
+                    Отложить событие
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания события календаря -->
+<div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createEventModalLabel">Создать событие календаря</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createEventForm">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="eventCase" class="form-label">Дело *</label>
+                                <select class="form-select" id="eventCase" name="case" required>
+                                    <option value="">Выберите дело</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="eventType" class="form-label">Тип события *</label>
+                                <select class="form-select" id="eventType" name="event_type" required>
+                                    <option value="">Выберите тип</option>
+                                    <option value="hearing">Судебное заседание</option>
+                                    <option value="separate_hearing">Заседание по обособленному спору</option>
+                                    <option value="deadline">Срок подачи документов</option>
+                                    <option value="reminder">Личное напоминание</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="separateDisputeContainer" style="display: none;">
+                        <label for="eventSeparateDispute" class="form-label">Обособленный спор</label>
+                        <select class="form-select" id="eventSeparateDispute" name="separate_dispute">
+                            <option value="">Выберите обособленный спор</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Название события *</label>
+                        <input type="text" class="form-control" id="eventTitle" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventDescription" class="form-label">Описание</label>
+                        <textarea class="form-control" id="eventDescription" name="description" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventStartDate" class="form-label">Дата начала *</label>
+                                <input type="date" class="form-control" id="eventStartDate" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventStartTime" class="form-label">Время начала *</label>
+                                <input type="time" class="form-control" id="eventStartTime" name="start_time" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventEndDate" class="form-label">Дата окончания</label>
+                                <input type="date" class="form-control" id="eventEndDate" name="end_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventEndTime" class="form-label">Время окончания</label>
+                                <input type="time" class="form-control" id="eventEndTime" name="end_time">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventCourtroom" class="form-label">Номер зала/кабинета</label>
+                                <input type="text" class="form-control" id="eventCourtroom" name="courtroom">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="eventCourtAddress" class="form-label">Адрес суда</label>
+                                <input type="text" class="form-control" id="eventCourtAddress" name="court_address">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventParticipants" class="form-label">Участники процесса</label>
+                        <textarea class="form-control" id="eventParticipants" name="participants" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eventAgenda" class="form-label">Вопросы для рассмотрения</label>
+                        <textarea class="form-control" id="eventAgenda" name="agenda" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="eventEmailNotifications" name="email_notifications" checked>
+                                <label class="form-check-label" for="eventEmailNotifications">
+                                    Email уведомления
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="eventTelegramNotifications" name="telegram_notifications">
+                                <label class="form-check-label" for="eventTelegramNotifications">
+                                    Telegram уведомления
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="createEventErrors" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveEventBtn">
+                    <span id="saveEventSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    Создать событие
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания дела -->
+<div class="modal fade" id="createCaseModal" tabindex="-1" aria-labelledby="createCaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCaseModalLabel">Создать новое дело</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createCaseForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="caseNumber" class="form-label">Номер дела в суде *</label>
+                                <input type="text" class="form-control" id="caseNumber" name="court_case_number" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="caseType" class="form-label">Тип дела *</label>
+                                <select class="form-select" id="caseType" name="case_type" required>
+                                    <option value="">Выберите тип дела</option>
+                                    <option value="civil">Гражданское</option>
+                                    <option value="administrative">Административное</option>
+                                    <option value="criminal">Уголовное</option>
+                                    <option value="arbitration">Арбитражное</option>
+                                    <option value="bankruptcy">Банкротство</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="court" class="form-label">Суд *</label>
+                                <select class="form-select" id="court" name="court" required>
+                                    <option value="">Выберите суд</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="courtInstance" class="form-label">Инстанция *</label>
+                                <select class="form-select" id="courtInstance" name="court_instance" required>
+                                    <option value="">Выберите инстанцию</option>
+                                    <option value="first">Первая инстанция</option>
+                                    <option value="appeal">Апелляционная</option>
+                                    <option value="cassation">Кассационная</option>
+                                    <option value="supervisory">Надзорная</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subjectMatter" class="form-label">Предмет спора *</label>
+                        <textarea class="form-control" id="subjectMatter" name="subject_matter" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="claimAmount" class="form-label">Сумма требований (₽)</label>
+                                <input type="number" class="form-control" id="claimAmount" name="claim_amount" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="caseStatus" class="form-label">Статус дела *</label>
+                                <select class="form-select" id="caseStatus" name="case_status" required>
+                                    <option value="">Выберите статус</option>
+                                    <option value="accepted">Принято к производству</option>
+                                    <option value="scheduled">Назначено к рассмотрению</option>
+                                    <option value="hearing">Рассматривается</option>
+                                    <option value="decided">Решение вынесено</option>
+                                    <option value="appeal_filed">Подана апелляция</option>
+                                    <option value="final">Вступило в силу</option>
+                                    <option value="execution">Исполнение</option>
+                                    <option value="closed">Дело закрыто</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="receivedDate" class="form-label">Дата поступления *</label>
+                                <input type="date" class="form-control" id="receivedDate" name="received_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="judgeName" class="form-label">Судья *</label>
+                                <input type="text" class="form-control" id="judgeName" name="judge_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="plaintiff" class="form-label">Истец/Заявитель *</label>
+                        <textarea class="form-control" id="plaintiff" name="plaintiff" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="defendant" class="form-label">Ответчик/Заинтересованное лицо *</label>
+                        <textarea class="form-control" id="defendant" name="defendant" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="thirdParty" class="form-label">Третье лицо</label>
+                        <textarea class="form-control" id="thirdParty" name="third_party" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="clientRole" class="form-label">Роль представляемой стороны *</label>
+                        <select class="form-select" id="clientRole" name="client_role" required>
+                            <option value="">Выберите роль</option>
+                            <option value="plaintiff">Истец</option>
+                            <option value="defendant">Ответчик</option>
+                            <option value="third_party">Третье лицо</option>
+                            <option value="other">Иное</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Краткое описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+                
+                <div id="createCaseErrors" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveCaseBtn">
+                    <span id="saveCaseSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                    Создать дело
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Глобальные переменные
+let currentPostponeEventId = null;
+
 // Загрузка данных дашборда при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
@@ -219,6 +559,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('saveEventBtn').addEventListener('click', async function() {
         await saveEventForm();
     });
+    
+    // Обработчик кнопки отложения
+    document.getElementById('confirmPostponeBtn').addEventListener('click', confirmPostpone);
 });
 
 // Функция для получения бейджа статуса события
@@ -278,6 +621,102 @@ function formatShortDate(dateString) {
             month: 'short' 
         });
     }
+}
+
+// Функция открытия модального окна отложения
+function openPostponeModal(eventId, eventTitle) {
+    currentPostponeEventId = eventId;
+    
+    // Устанавливаем заголовок события
+    document.getElementById('postponeEventTitle').textContent = eventTitle;
+    
+    // Устанавливаем завтрашнюю дату по умолчанию
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    document.getElementById('postponeNewDate').value = tomorrowStr;
+    
+    // Устанавливаем время 10:00 по умолчанию
+    document.getElementById('postponeNewTime').value = '10:00';
+    
+    // Очищаем форму
+    document.getElementById('postponeReason').value = '';
+    document.getElementById('postponeErrors').classList.add('d-none');
+    
+    // Открываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('postponeEventModal'));
+    modal.show();
+}
+
+// Функция подтверждения отложения
+async function confirmPostpone() {
+    const confirmBtn = document.getElementById('confirmPostponeBtn');
+    const spinner = document.getElementById('postponeSpinner');
+    const errorsDiv = document.getElementById('postponeErrors');
+    
+    // Показываем загрузку
+    confirmBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    errorsDiv.classList.add('d-none');
+    
+    try {
+        // Получаем данные из формы
+        const newDate = document.getElementById('postponeNewDate').value;
+        const newTime = document.getElementById('postponeNewTime').value;
+        const reason = document.getElementById('postponeReason').value;
+        
+        if (!newDate || !newTime) {
+            throw new Error('Не указана новая дата или время');
+        }
+        
+        // Формируем дату и время
+        const newDateTime = `${newDate}T${newTime}:00`;
+        
+        // Проверяем, что новая дата в будущем
+        const newDateTimeObj = new Date(newDateTime);
+        const now = new Date();
+        
+        if (newDateTimeObj <= now) {
+            throw new Error('Новая дата и время должны быть в будущем');
+        }
+        
+        // Отправляем запрос на сервер
+        const response = await axios.post(`/api/calendar/events/${currentPostponeEventId}/postpone/`, {
+            new_datetime: newDateTime,
+            reason: reason
+        });
+        
+        if (response.data.success) {
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('postponeEventModal'));
+            modal.hide();
+            
+            // Обновляем данные dashboard
+            await loadDashboardData();
+            
+            // Показываем уведомление
+            alert(`Событие успешно отложено на ${formatDate(newDateTime)}`);
+        } else {
+            throw new Error(response.data.message || 'Ошибка при отложении события');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка отложения события:', error);
+        
+        let errorText = 'Ошибка при отложении события';
+        if (error.response?.data?.error) {
+            errorText = error.response.data.error;
+        } else if (error.message) {
+            errorText = error.message;
+        }
+        
+        errorsDiv.innerHTML = errorText;
+        errorsDiv.classList.remove('d-none');
+    }
+    
+    // Скрываем загрузку
+    confirmBtn.disabled = false;
+    spinner.classList.add('d-none');
 }
 
 async function loadDashboardData() {
@@ -406,6 +845,18 @@ async function loadUpcomingHearings() {
                         minute: '2-digit' 
                     });
                     
+                    // Показываем кнопку "Отложить" только для запланированных событий
+                    const postponeButton = event.status === 'scheduled' ? 
+                        `<button class="btn btn-sm btn-outline-warning ms-2" onclick="openPostponeModal(${event.id}, '${event.title}')" title="Отложить заседание">
+                            <i class="fas fa-clock"></i> Отложить
+                        </button>` : '';
+                    
+                    // Показываем информацию о переносе, если событие было отложено из другого
+                    const postponementInfo = event.original_event_id ? 
+                        `<div class="small text-info mt-1">
+                            <i class="fas fa-history"></i> Перенесено с ${formatDate(event.original_event_datetime)}
+                        </div>` : '';
+                    
                     hearingsHtml += `
                         <div class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
@@ -415,7 +866,10 @@ async function loadUpcomingHearings() {
                                     </a>
                                     ${typeBadge}
                                 </h6>
-                                <small>${statusBadge}</small>
+                                <div class="d-flex align-items-center">
+                                    <small>${statusBadge}</small>
+                                    ${postponeButton}
+                                </div>
                             </div>
                             <p class="mb-1">
                                 <strong>${event.case_number || 'Дело'}</strong>
@@ -426,6 +880,7 @@ async function loadUpcomingHearings() {
                                 <i class="fas fa-calendar me-1"></i>${dateStr} в ${timeStr}
                                 ${event.court_name ? ` • ${event.court_name}` : ''}
                             </small>
+                            ${postponementInfo}
                         </div>
                     `;
                 } catch (eventError) {
@@ -869,289 +1324,6 @@ async function inviteUser(email) {
 }
 {% endif %}
 </script>
-
-<!-- Модальное окно создания события календаря -->
-<div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createEventModalLabel">Создать событие календаря</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createEventForm">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label for="eventCase" class="form-label">Дело *</label>
-                                <select class="form-select" id="eventCase" name="case" required>
-                                    <option value="">Выберите дело</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="eventType" class="form-label">Тип события *</label>
-                                <select class="form-select" id="eventType" name="event_type" required>
-                                    <option value="">Выберите тип</option>
-                                    <option value="hearing">Судебное заседание</option>
-                                    <option value="separate_hearing">Заседание по обособленному спору</option>
-                                    <option value="deadline">Срок подачи документов</option>
-                                    <option value="reminder">Личное напоминание</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3" id="separateDisputeContainer" style="display: none;">
-                        <label for="eventSeparateDispute" class="form-label">Обособленный спор</label>
-                        <select class="form-select" id="eventSeparateDispute" name="separate_dispute">
-                            <option value="">Выберите обособленный спор</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="eventTitle" class="form-label">Название события *</label>
-                        <input type="text" class="form-control" id="eventTitle" name="title" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="eventDescription" class="form-label">Описание</label>
-                        <textarea class="form-control" id="eventDescription" name="description" rows="2"></textarea>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="eventStartDate" class="form-label">Дата начала *</label>
-                                <input type="date" class="form-control" id="eventStartDate" name="start_date" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="eventStartTime" class="form-label">Время начала *</label>
-                                <input type="time" class="form-control" id="eventStartTime" name="start_time" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="eventEndDate" class="form-label">Дата окончания</label>
-                                <input type="date" class="form-control" id="eventEndDate" name="end_date">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="eventEndTime" class="form-label">Время окончания</label>
-                                <input type="time" class="form-control" id="eventEndTime" name="end_time">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="eventCourtroom" class="form-label">Номер зала/кабинета</label>
-                                <input type="text" class="form-control" id="eventCourtroom" name="courtroom">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="eventCourtAddress" class="form-label">Адрес суда</label>
-                                <input type="text" class="form-control" id="eventCourtAddress" name="court_address">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="eventParticipants" class="form-label">Участники процесса</label>
-                        <textarea class="form-control" id="eventParticipants" name="participants" rows="2"></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="eventAgenda" class="form-label">Вопросы для рассмотрения</label>
-                        <textarea class="form-control" id="eventAgenda" name="agenda" rows="2"></textarea>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="eventEmailNotifications" name="email_notifications" checked>
-                                <label class="form-check-label" for="eventEmailNotifications">
-                                    Email уведомления
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="eventTelegramNotifications" name="telegram_notifications">
-                                <label class="form-check-label" for="eventTelegramNotifications">
-                                    Telegram уведомления
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-                
-                <div id="createEventErrors" class="alert alert-danger d-none"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="saveEventBtn">
-                    <span id="saveEventSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
-                    Создать событие
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно создания дела -->
-<div class="modal fade" id="createCaseModal" tabindex="-1" aria-labelledby="createCaseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createCaseModalLabel">Создать новое дело</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createCaseForm">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="caseNumber" class="form-label">Номер дела в суде *</label>
-                                <input type="text" class="form-control" id="caseNumber" name="court_case_number" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="caseType" class="form-label">Тип дела *</label>
-                                <select class="form-select" id="caseType" name="case_type" required>
-                                    <option value="">Выберите тип дела</option>
-                                    <option value="civil">Гражданское</option>
-                                    <option value="administrative">Административное</option>
-                                    <option value="criminal">Уголовное</option>
-                                    <option value="arbitration">Арбитражное</option>
-                                    <option value="bankruptcy">Банкротство</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label for="court" class="form-label">Суд *</label>
-                                <select class="form-select" id="court" name="court" required>
-                                    <option value="">Выберите суд</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="courtInstance" class="form-label">Инстанция *</label>
-                                <select class="form-select" id="courtInstance" name="court_instance" required>
-                                    <option value="">Выберите инстанцию</option>
-                                    <option value="first">Первая инстанция</option>
-                                    <option value="appeal">Апелляционная</option>
-                                    <option value="cassation">Кассационная</option>
-                                    <option value="supervisory">Надзорная</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="subjectMatter" class="form-label">Предмет спора *</label>
-                        <textarea class="form-control" id="subjectMatter" name="subject_matter" rows="2" required></textarea>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="claimAmount" class="form-label">Сумма требований (₽)</label>
-                                <input type="number" class="form-control" id="claimAmount" name="claim_amount" step="0.01">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="caseStatus" class="form-label">Статус дела *</label>
-                                <select class="form-select" id="caseStatus" name="case_status" required>
-                                    <option value="">Выберите статус</option>
-                                    <option value="accepted">Принято к производству</option>
-                                    <option value="scheduled">Назначено к рассмотрению</option>
-                                    <option value="hearing">Рассматривается</option>
-                                    <option value="decided">Решение вынесено</option>
-                                    <option value="appeal_filed">Подана апелляция</option>
-                                    <option value="final">Вступило в силу</option>
-                                    <option value="execution">Исполнение</option>
-                                    <option value="closed">Дело закрыто</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="receivedDate" class="form-label">Дата поступления *</label>
-                                <input type="date" class="form-control" id="receivedDate" name="received_date" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="judgeName" class="form-label">Судья *</label>
-                                <input type="text" class="form-control" id="judgeName" name="judge_name" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="plaintiff" class="form-label">Истец/Заявитель *</label>
-                        <textarea class="form-control" id="plaintiff" name="plaintiff" rows="2" required></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="defendant" class="form-label">Ответчик/Заинтересованное лицо *</label>
-                        <textarea class="form-control" id="defendant" name="defendant" rows="2" required></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="thirdParty" class="form-label">Третье лицо</label>
-                        <textarea class="form-control" id="thirdParty" name="third_party" rows="2"></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="clientRole" class="form-label">Роль представляемой стороны *</label>
-                        <select class="form-select" id="clientRole" name="client_role" required>
-                            <option value="">Выберите роль</option>
-                            <option value="plaintiff">Истец</option>
-                            <option value="defendant">Ответчик</option>
-                            <option value="third_party">Третье лицо</option>
-                            <option value="other">Иное</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Краткое описание</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                </form>
-                
-                <div id="createCaseErrors" class="alert alert-danger d-none"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="saveCaseBtn">
-                    <span id="saveCaseSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
-                    Создать дело
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <style>
 .border-left-primary {
