@@ -124,7 +124,7 @@
         <div class="card shadow">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Ближайшие заседания</h6>
-                <a href="#" class="btn btn-sm btn-primary">Просмотреть все</a>
+                <a href="/calendar/" class="btn btn-sm btn-primary">Просмотреть все</a>
             </div>
             <div class="card-body">
                 <div id="upcomingHearings">
@@ -221,6 +221,65 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Функция для получения бейджа статуса события
+function getEventStatusBadge(status) {
+    const statusMap = {
+        'scheduled': { class: 'bg-primary', text: 'Запланировано' },
+        'postponed': { class: 'bg-warning', text: 'Отложено' },
+        'completed': { class: 'bg-success', text: 'Завершено' },
+        'cancelled': { class: 'bg-danger', text: 'Отменено' }
+    };
+
+    const statusInfo = statusMap[status] || { class: 'bg-secondary', text: 'Неизвестно' };
+    return `<span class="badge ${statusInfo.class}">${statusInfo.text}</span>`;
+}
+
+// Функция для получения бейджа типа события
+function getEventTypeBadge(eventType) {
+    const typeMap = {
+        'hearing': { class: 'bg-primary', text: 'Заседание' },
+        'separate_hearing': { class: 'bg-info', text: 'Обособленный спор' },
+        'deadline': { class: 'bg-warning', text: 'Срок' },
+        'reminder': { class: 'bg-secondary', text: 'Напоминание' }
+    };
+
+    const typeInfo = typeMap[eventType] || { class: 'bg-light text-dark', text: 'Событие' };
+    return `<span class="badge ${typeInfo.class} ms-1">${typeInfo.text}</span>`;
+}
+
+// Функция для форматирования даты
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Moscow'
+    };
+    return date.toLocaleDateString('ru-RU', options);
+}
+
+// Функция для форматирования короткой даты
+function formatShortDate(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+        return 'Сегодня';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+        return 'Завтра';
+    } else {
+        return date.toLocaleDateString('ru-RU', { 
+            day: 'numeric', 
+            month: 'short' 
+        });
+    }
+}
+
 async function loadDashboardData() {
     try {
         // Загружаем статистику по делам
@@ -263,8 +322,10 @@ async function loadDashboardData() {
 
 async function loadUpcomingHearings() {
     try {
+        console.log('Загружаем ближайшие заседания...');
+        
         // Загружаем ближайшие события календаря
-        const eventsResponse = await axios.get('/api/calendar/events/?upcoming=true');
+        const eventsResponse = await axios.get('/api/calendar/events/');
         
         console.log('Ответ API событий:', eventsResponse.data);
         
@@ -278,9 +339,23 @@ async function loadUpcomingHearings() {
             events = [];
         }
         
+        console.log('Общее количество событий:', events.length);
+        
+        // Фильтруем только будущие события
+        const now = new Date();
+        const upcomingEvents = events.filter(event => {
+            const eventDate = new Date(event.start_datetime);
+            return eventDate > now;
+        });
+        
+        console.log('Будущих событий:', upcomingEvents.length);
+        
+        // Сортируем по дате
+        upcomingEvents.sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
+        
         const hearingsContainer = document.getElementById('upcomingHearings');
         
-        if (events.length === 0) {
+        if (upcomingEvents.length === 0) {
             // Проверяем, есть ли дела у пользователя
             const casesResponse = await axios.get('/api/cases/');
             let cases = [];
@@ -311,16 +386,25 @@ async function loadUpcomingHearings() {
                     </div>
                 `;
             }
+            
+            // Обновляем счетчик
+            document.getElementById('upcomingHearingsCount').textContent = '0';
         } else {
             let hearingsHtml = '<div class="list-group list-group-flush">';
             
-            events.slice(0, 5).forEach(event => {
+            // Берем только первые 5 событий
+            const eventsToShow = upcomingEvents.slice(0, 5);
+            
+            eventsToShow.forEach(event => {
                 try {
                     const statusBadge = getEventStatusBadge(event.status);
                     const typeBadge = getEventTypeBadge(event.event_type);
                     const eventDate = new Date(event.start_datetime);
-                    const dateStr = eventDate.toLocaleDateString('ru-RU');
-                    const timeStr = eventDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = formatShortDate(event.start_datetime);
+                    const timeStr = eventDate.toLocaleTimeString('ru-RU', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
                     
                     hearingsHtml += `
                         <div class="list-group-item list-group-item-action">
@@ -345,23 +429,27 @@ async function loadUpcomingHearings() {
                         </div>
                     `;
                 } catch (eventError) {
-                    console.error('Ошибка обработки события:', event, eventError);
+                    console.error('Ошибка обработки события:', eventError);
+                    console.error('Проблемное событие:', event);
                 }
             });
             
             hearingsHtml += '</div>';
             
-            if (events.length >= 5) {
+            if (upcomingEvents.length > 5) {
                 hearingsHtml += `
                     <div class="text-center mt-3">
-                        <a href="#" onclick="openCalendarView()" class="btn btn-outline-primary btn-sm">
-                            Показать все события
+                        <a href="/calendar/" class="btn btn-outline-primary btn-sm">
+                            Показать все события (${upcomingEvents.length})
                         </a>
                     </div>
                 `;
             }
             
             hearingsContainer.innerHTML = hearingsHtml;
+            
+            // Обновляем счетчик
+            document.getElementById('upcomingHearingsCount').textContent = upcomingEvents.length;
         }
         
     } catch (error) {
@@ -379,6 +467,7 @@ async function loadUpcomingHearings() {
                 </button>
             </div>
         `;
+        document.getElementById('upcomingHearingsCount').textContent = '0';
     }
 }
 
@@ -470,11 +559,15 @@ async function loadCourts() {
 }
 
 function openCase(caseId) {
-    alert(`Открытие дела с ID: ${caseId}. Функция будет добавлена позже.`);
+    window.location.href = `/cases/${caseId}/`;
+}
+
+function openEvent(eventId) {
+    window.location.href = `/calendar/event/${eventId}/`;
 }
 
 function openCasesList() {
-    alert('Переход к списку дел. Функция будет добавлена позже.');
+    window.location.href = '/cases/';
 }
 
 // Функции для работы с событиями календаря
